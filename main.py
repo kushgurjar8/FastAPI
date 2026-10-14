@@ -73,7 +73,25 @@ def get_db():
 #             return "Student deleted"
 #     return "Student not found"
 
+# ___________________________________________________________________________________________
 
+@app.get("/")
+def get_data():
+    return "Welcome to FastAPI"
+
+
+# read all students
+@app.get("/student/")
+def get_students(db: Session = Depends(get_db)):
+    return db.query(database_models.Student).all()
+
+# read one student
+@app.get("/student_id/{id}")
+def get_student(id: int, db: Session = Depends(get_db)):
+    s = db.query(database_models.Student).filter(database_models.Student.id == id).first()
+    if s:
+        return s
+    return "Student not found"
 
 # create a student
 @app.post("/student_create/")
@@ -86,3 +104,26 @@ def add_student(new_student: student, db: Session = Depends(get_db)):
     db.commit()               # save to PostgreSQL
     db.refresh(db_student)    # reload saved values
     return db_student
+
+
+# update a student
+@app.put("/student_update/{id}")
+def update_student(id: int, updated_student: student, db: Session = Depends(get_db)):
+    s = db.query(database_models.Student).filter(database_models.Student.id == id).first()
+    if s:
+        s.name = updated_student.name
+        db.commit()
+        db.refresh(s)
+        return s
+    return "Student not found"
+
+
+# delete a student
+@app.delete("/student_delete/{id}")
+def delete_student(id: int, db: Session = Depends(get_db)):
+    s = db.query(database_models.Student).filter(database_models.Student.id == id).first()
+    if s:
+        db.delete(s)
+        db.commit()
+        return "Student deleted"
+    return "Student not found"
