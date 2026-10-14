@@ -1,6 +1,5 @@
-from fastapi import FastAPI
-from models import *
 from fastapi import FastAPI, Depends
+from models import *
 from sqlalchemy.orm import Session
 from database import engine, SessionLocal, Base
 import database_models
@@ -85,10 +84,10 @@ def get_data():
 def get_students(db: Session = Depends(get_db)):
     return db.query(database_models.Student).all()
 
-# read one student
+# read one
 @app.get("/student_id/{id}")
 def get_student(id: int, db: Session = Depends(get_db)):
-    s = db.query(database_models.Student).filter(database_models.Student.id == id).first()
+    s = db.get(database_models.Student, id)
     if s:
         return s
     return "Student not found"
@@ -96,32 +95,27 @@ def get_student(id: int, db: Session = Depends(get_db)):
 # create a student
 @app.post("/student_create/")
 def add_student(new_student: student, db: Session = Depends(get_db)):
-    exists = db.query(database_models.Student).filter(database_models.Student.id == new_student.id).first()
-    if exists:
+    if db.get(database_models.Student, new_student.id):
         return "Student already exists"
-    db_student = database_models.Student(**new_student.model_dump())  # Pydantic → table row
-    db.add(db_student)
-    db.commit()               # save to PostgreSQL
-    db.refresh(db_student)    # reload saved values
-    return db_student
+    db.add(database_models.Student(**new_student.model_dump()))
+    db.commit()
+    return new_student
 
 
-# update a student
+# update
 @app.put("/student_update/{id}")
 def update_student(id: int, updated_student: student, db: Session = Depends(get_db)):
-    s = db.query(database_models.Student).filter(database_models.Student.id == id).first()
+    s = db.get(database_models.Student, id)
     if s:
         s.name = updated_student.name
         db.commit()
-        db.refresh(s)
-        return s
+        return updated_student
     return "Student not found"
 
-
-# delete a student
+# delete
 @app.delete("/student_delete/{id}")
 def delete_student(id: int, db: Session = Depends(get_db)):
-    s = db.query(database_models.Student).filter(database_models.Student.id == id).first()
+    s = db.get(database_models.Student, id)
     if s:
         db.delete(s)
         db.commit()
