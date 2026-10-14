@@ -101,6 +101,21 @@ def add_student(new_student: student, db: Session = Depends(get_db)):
     db.commit()
     return new_student
 
+# one more method to create if we dont want to use **new_student.modeldump()
+
+# @app.post("/student_create/")
+# def add_student(new_student: student, db: Session = Depends(get_db)):
+#     if db.get(database_models.Student, new_student.id):
+#         return "Student already exists"
+
+#     db_student = database_models.Student(
+#         id=new_student.id,
+#         name=new_student.name
+#     )
+#     db.add(db_student)
+#     db.commit()
+#     return new_student
+
 
 # update
 @app.put("/student_update/{id}")
