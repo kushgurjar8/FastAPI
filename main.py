@@ -3,19 +3,24 @@ from models import *
 from sqlalchemy.orm import Session
 from database import engine, SessionLocal, Base
 import database_models
+import secrets
+from datetime import datetime, timedelta, timezone
+import jwt
+from fastapi import FastAPI, Depends, HTTPException
+
 
 app = FastAPI()
 
 Base.metadata.create_all(bind=engine)     # creates the table if it doesn't exist
 
 # Opens a DB session for each request and closes it afterwards
+
 def get_db():
     db = SessionLocal()
     try:
         yield db
     finally:
         db.close()
-
 
 
 # @app.get('/')
@@ -72,7 +77,7 @@ def get_db():
 #             return "Student deleted"
 #     return "Student not found"
 
-# ___________________________________________________________________________________________
+# _____________________________crud with database______________________________________________________________
 
 @app.get("/")
 def get_data():
@@ -117,14 +122,16 @@ def add_student(new_student: student, db: Session = Depends(get_db)):
 #     return new_student
 
 
-# update
+# update a student
 @app.put("/student_update/{id}")
 def update_student(id: int, updated_student: student, db: Session = Depends(get_db)):
     s = db.get(database_models.Student, id)
     if s:
         s.name = updated_student.name
+        s.password = updated_student.password     
         db.commit()
-        return updated_student
+        db.refresh(s)                             
+        return s                                  
     return "Student not found"
 
 # delete
@@ -136,3 +143,32 @@ def delete_student(id: int, db: Session = Depends(get_db)):
         db.commit()
         return "Student deleted"
     return "Student not found"
+
+
+
+# --------------------------------------login using JWT---------------------------------------------------------------------------
+
+SECURITY_KEY = secrets.token_hex(32)
+ALGORITHM = "HS256"
+
+
+# login JWT
+
+@app.post("/login")
+def login(data: Login, db: Session = Depends(get_db)):
+    student = db.query(database_models.Student).filter(
+        database_models.Student.name == data.username
+    ).first()
+
+    if student is None or student.password != data.password:
+        raise HTTPException(status_code=404, detail="Invalid username or password")
+
+    payload = {
+        "id": student.id,
+        "name": student.name,
+        "exp": datetime.now(timezone.utc) + timedelta(minutes=30),
+    }
+
+    token = jwt.encode(payload, SECURITY_KEY, algorithm=ALGORITHM)
+
+    return {"message": "Login successful", "access_token": token}
