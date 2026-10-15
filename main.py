@@ -154,21 +154,42 @@ ALGORITHM = "HS256"
 
 # login JWT
 
+# @app.post("/login")
+# def login(data: Login, db: Session = Depends(get_db)):
+#     student = db.query(database_models.Student).filter(
+#         database_models.Student.name == data.username
+#     ).first()
+
+#     if student is None or student.password != data.password:
+#         raise HTTPException(status_code=404, detail="Invalid username or password")
+
+#     payload = {
+#         "id": student.id,
+#         "name": student.name,
+#         "exp": datetime.now(timezone.utc) + timedelta(minutes=30),
+#     }
+
+#     token = jwt.encode(payload, SECURITY_KEY, algorithm=ALGORITHM)
+
+#     return {"message": "Login successful", "access_token": token}
+
+# ---------------------------------------------login by email verification-------------------------------------
+
 @app.post("/login")
 def login(data: Login, db: Session = Depends(get_db)):
     student = db.query(database_models.Student).filter(
-        database_models.Student.name == data.username
+        database_models.Student.email == data.email  
     ).first()
 
     if student is None or student.password != data.password:
-        raise HTTPException(status_code=404, detail="Invalid username or password")
+        raise HTTPException(status_code=404, detail="Invalid email or password")
 
     payload = {
         "id": student.id,
         "name": student.name,
+        "email": student.email,                             
         "exp": datetime.now(timezone.utc) + timedelta(minutes=30),
     }
 
     token = jwt.encode(payload, SECURITY_KEY, algorithm=ALGORITHM)
-
     return {"message": "Login successful", "access_token": token}
